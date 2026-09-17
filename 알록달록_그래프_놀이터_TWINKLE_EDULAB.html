@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>알록달록 그래프 놀이터</title>
+<style>
+:root{
+  --ink:#28323d;--muted:#687789;--pink:#ff7aa2;--yellow:#ffd45e;
+  --green:#63d2a5;--blue:#6db8ff;--purple:#a78bfa;--orange:#ff9e66;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:"Malgun Gothic","Noto Sans KR",system-ui,sans-serif;color:var(--ink);
+  background:linear-gradient(135deg,#eefaff,#fff8de 48%,#f8efff);min-height:100vh
+}
+header{text-align:center;padding:24px 14px 10px}
+h1{margin:0;font-size:clamp(28px,4vw,46px);letter-spacing:-1px}
+.subtitle{color:var(--muted);font-weight:800;margin-top:7px}
+.app{width:min(1220px,96vw);margin:12px auto 30px;display:grid;grid-template-columns:370px 1fr;gap:18px}
+.panel,.stage{
+  background:rgba(255,255,255,.95);border-radius:24px;box-shadow:0 12px 35px rgba(80,90,120,.15)
+}
+.panel{padding:18px}.stage{padding:18px;min-height:680px}
+.box{padding:14px;border-radius:18px;margin-bottom:14px}
+.box:nth-child(1){background:#fff8df}.box:nth-child(2){background:#eef8ff}
+.box:nth-child(3){background:#f9efff}.box:nth-child(4){background:#effcf6}
+label{display:block;font-weight:900;margin:8px 0 6px}
+input,button{font:inherit;border-radius:12px;padding:10px;border:2px solid #dce8ef}
+input{width:100%;background:white}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.type{
+  border:0;font-weight:900;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.1);
+  transition:.15s
+}
+.type:hover{transform:translateY(-1px)}
+.type.active{outline:4px solid #26323822;transform:translateY(3px);box-shadow:none}
+.type:nth-child(1){background:var(--yellow)}.type:nth-child(2){background:var(--blue)}
+.type:nth-child(3){background:#ff9bbb}.type:nth-child(4){background:#7addb2}
+
+.data-row{display:grid;grid-template-columns:1.35fr .7fr 40px;gap:6px;margin:7px 0}
+.data-row button{border:0;background:#ffe0e8;font-weight:900;cursor:pointer}
+.add{width:100%;margin-top:6px;background:#eaf8ff;border:2px dashed #7dc9f5;font-weight:900;cursor:pointer}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.action{border:0;font-weight:900;cursor:pointer}
+.save{background:#75d3a8}.print{background:#ffd264}.reset{background:#ffb1c7}
+#paper{
+  background:white;border-radius:18px;border:3px dashed #dfeaf0;min-height:610px;
+  padding:16px;overflow:auto
+}
+.chart-title{text-align:center;font-size:28px;font-weight:900;margin:4px 0 8px}
+.chart-note{text-align:center;color:var(--muted);font-weight:700;margin-bottom:4px}
+svg{display:block;width:100%;height:auto;min-height:520px}
+.hint{
+  margin-top:10px;padding:10px 12px;background:#fff9d8;border-radius:12px;
+  font-size:13px;font-weight:800;color:#6d6251
+}
+.brand-footer{width:min(1220px,96vw);margin:-10px auto 24px;text-align:center;color:#7b8794;font-size:12px;font-weight:800;letter-spacing:.8px}
+@media(max-width:850px){.app{grid-template-columns:1fr}.stage{min-height:560px}}
+@media print{
+  body{background:white}.panel,header .subtitle{display:none!important}
+  .app{display:block;width:100%;margin:0}.stage{box-shadow:none;padding:0}
+  #paper{border:0}.chart-title{font-size:26px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌈 알록달록 그래프 놀이터</h1>
+  <div class="subtitle">자료를 직접 입력하고 여러 가지 그래프로 바꾸어 보세요!</div>
+</header>
+
+<main class="app">
+  <section class="panel">
+    <div class="box">
+      <label>📌 그래프 제목</label>
+      <input id="title" value="우리 반이 좋아하는 과일">
+      <div class="row">
+        <div><label>↔ 가로축 이름</label><input id="xlabel" value="과일"></div>
+        <div><label>↕ 세로축 이름</label><input id="ylabel" value="학생 수(명)"></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <label>🎨 그래프 모양 고르기</label>
+      <div class="types">
+        <button class="type active" data-type="bar">📊 막대그래프</button>
+        <button class="type" data-type="line">📈 꺾은선그래프</button>
+        <button class="type" data-type="pie">🥧 원그래프</button>
+        <button class="type" data-type="picture">🍎 그림그래프</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <label>✏️ 항목과 값 입력</label>
+      <div id="rows"></div>
+      <button class="add" id="add">＋ 항목 추가</button>
+      <div class="hint">그림그래프는 항목마다 그림이 값만큼 나타나요. 그림 1개가 1을 뜻합니다.</div>
+    </div>
+
+    <div class="box">
+      <div class="actions">
+        <button class="action save" id="save">💾 PNG 저장</button>
+        <button class="action print" onclick="window.print()">🖨️ 인쇄</button>
+        <button class="action reset" id="reset">↻ 처음으로</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div id="paper">
+      <div class="chart-title" id="chartTitle"></div>
+      <div class="chart-note" id="chartNote"></div>
+      <svg id="chart" viewBox="0 0 820 540" aria-label="그래프"></svg>
+    </div>
+  </section>
+</main>
+<footer class="brand-footer">TWINKLE EDULAB | MADE BY SOYOUNG SSAEM</footer>
+
+<script>
+const palette=['#ff7aa2','#ffd45e','#63d2a5','#6db8ff','#a78bfa','#ff9e66','#5dd6d1','#ff8b73'];
+let graphType='bar';
+let data=[
+  {name:'사과',value:8},{name:'바나나',value:5},{name:'딸기',value:10},{name:'포도',value:7}
+];
+
+const $=s=>document.querySelector(s);
+const svg=$('#chart');
+const rows=$('#rows');
+
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+function renderRows(){
+  rows.innerHTML='';
+  data.forEach((d,i)=>{
+    const r=document.createElement('div');r.className='data-row';
+    r.innerHTML=`<input class="name" value="${esc(d.name)}" aria-label="항목">
+      <input class="val" type="number" min="0" step="1" value="${d.value}" aria-label="값">
+      <button title="삭제">×</button>`;
+    r.querySelector('.name').oninput=e=>{data[i].name=e.target.value;draw()};
+    r.querySelector('.val').oninput=e=>{data[i].value=Math.max(0,+e.target.value||0);draw()};
+    r.querySelector('button').onclick=()=>{if(data.length>1){data.splice(i,1);renderRows();draw()}};
+    rows.appendChild(r);
+  });
+}
+function t(x,y,text,size=16,anchor='middle',weight=700,fill='#28323d',rotate=0){
+  return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="${size}" font-weight="${weight}" fill="${fill}" transform="rotate(${rotate} ${x} ${y})">${esc(text)}</text>`;
+}
+function line(x1,y1,x2,y2,stroke='#72808d',w=2,dash=''){
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+}
+function commonAxes(max){
+  const L=90,R=760,T=45,B=450,H=B-T,W=R-L;
+  let out='';
+  const step=Math.max(1,Math.ceil(max/5));
+  const top=Math.max(step*5,max||5);
+  for(let v=0;v<=top;v+=step){
+    let y=B-(v/top)*H;
+    out+=line(L,y,R,y,'#e3e9ee',1);
+    out+=t(L-12,y+5,v,14,'end',700,'#687789');
+  }
+  out+=line(L,T,L,B,'#42505c',3)+line(L,B,R,B,'#42505c',3);
+  return {out,L,R,T,B,H,W,top};
+}
+function drawBar(){
+  let max=Math.max(...data.map(d=>d.value),1),a=commonAxes(max),out=a.out;
+  const gap=18,bw=(a.W-gap*(data.length+1))/data.length;
+  data.forEach((d,i)=>{
+    const h=d.value/a.top*a.H,x=a.L+gap+i*(bw+gap),y=a.B-h;
+    out+=`<rect x="${x}" y="${y}" width="${Math.max(12,bw)}" height="${h}" rx="12" fill="${palette[i%palette.length]}"/>`;
+    out+=t(x+bw/2,a.B+28,d.name,15);
+    out+=t(x+bw/2,y-8,d.value,15);
+  });
+  return out+axisLabels(a);
+}
+function drawLine(){
+  let max=Math.max(...data.map(d=>d.value),1),a=commonAxes(max),out=a.out;
+  const xs=data.map((d,i)=>a.L+35+(data.length===1?0:i*(a.W-70)/(data.length-1)));
+  const pts=data.map((d,i)=>`${xs[i]},${a.B-d.value/a.top*a.H}`).join(' ');
+  out+=`<polyline points="${pts}" fill="none" stroke="#5f75e8" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  data.forEach((d,i)=>{
+    const y=a.B-d.value/a.top*a.H;
+    out+=`<circle cx="${xs[i]}" cy="${y}" r="9" fill="${palette[i%palette.length]}" stroke="white" stroke-width="3"/>`;
+    out+=t(xs[i],a.B+28,d.name,15)+t(xs[i],y-13,d.value,15);
+  });
+  return out+axisLabels(a);
+}
+function drawPie(){
+  const total=data.reduce((s,d)=>s+d.value,0)||1,cx=380,cy=245,r=165;
+  let angle=-Math.PI/2,out='',legendY=95;
+  data.forEach((d,i)=>{
+    const frac=d.value/total, next=angle+frac*Math.PI*2;
+    const x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle),x2=cx+r*Math.cos(next),y2=cy+r*Math.sin(next);
+    const large=frac>0.5?1:0;
+    out+=`<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z" fill="${palette[i%palette.length]}" stroke="white" stroke-width="4"/>`;
+    if(frac>0.055){
+      const mid=(angle+next)/2,tx=cx+r*.62*Math.cos(mid),ty=cy+r*.62*Math.sin(mid);
+      out+=t(tx,ty,`${Math.round(frac*100)}%`,16,'middle',900);
+    }
+    out+=`<rect x="610" y="${legendY-14}" width="18" height="18" rx="4" fill="${palette[i%palette.length]}"/>`;
+    out+=t(638,legendY,d.name+' '+d.value,15,'start');
+    legendY+=34; angle=next;
+  });
+  return out+t(380,485,'전체 '+data.reduce((s,d)=>s+d.value,0),16);
+}
+function drawPicture(){
+  const L=90,R=760,T=55,B=445,H=B-T,W=R-L;
+  const max=Math.max(...data.map(d=>Math.round(d.value)),1);
+  let out='';
+
+  // 값이 커져도 화면 안에 들어오도록 세로 간격을 자동 조절
+  const step=Math.max(1,Math.ceil(max/5));
+  const top=Math.max(step*5,max);
+  for(let v=0;v<=top;v+=step){
+    const y=B-(v/top)*H;
+    out+=line(L,y,R,y,'#e3e9ee',1);
+    out+=t(L-12,y+5,v,14,'end',700,'#687789');
+  }
+  out+=line(L,T,L,B,'#42505c',3)+line(L,B,R,B,'#42505c',3);
+
+  const colW=W/data.length;
+  const icons=['🍎','⭐','🌼','🧸','🍀','🎈','🐳','🌈'];
+  const usableH=H-20;
+  const iconStep=Math.min(34, usableH/Math.max(top,1));
+  const iconSize=Math.max(13, Math.min(28, iconStep*0.82));
+
+  data.forEach((d,i)=>{
+    const value=Math.max(0,Math.round(d.value));
+    const x=L+colW*(i+.5);
+    const icon=icons[i%icons.length];
+
+    for(let n=1;n<=value;n++){
+      const y=B-(n-.5)*(usableH/top);
+      out+=t(x,y,icon,iconSize,'middle',700,'#28323d');
+    }
+
+    out+=t(x,B+28,d.name,15);
+    if(value>0){
+      const labelY=Math.max(T+10, B-value*(usableH/top)-8);
+      out+=t(x,labelY,value,15,'middle',900,'#28323d');
+    }
+  });
+
+  out+=t((L+R)/2,510,$('#xlabel').value||'가로축',17);
+  out+=t(26,(T+B)/2,$('#ylabel').value||'세로축',17,'middle',800,'#28323d',-90);
+  out+=t(675,505,'그림 1개 = 1',14,'middle',800,'#687789');
+  return out;
+}
+
+function axisLabels(a){
+  return t((a.L+a.R)/2,510,$('#xlabel').value||'가로축',17)+
+         t(26,(a.T+a.B)/2,$('#ylabel').value||'세로축',17,'middle',800,'#28323d',-90);
+}
+function draw(){
+  $('#chartTitle').textContent=$('#title').value||'그래프';
+  const names={bar:'막대그래프',line:'꺾은선그래프',pie:'원그래프',picture:'그림그래프'};
+  $('#chartNote').textContent=names[graphType];
+  svg.innerHTML= graphType==='bar'?drawBar():
+    graphType==='line'?drawLine():
+    graphType==='pie'?drawPie():drawPicture();
+}
+document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.type').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');graphType=b.dataset.type;draw();
+});
+['title','xlabel','ylabel'].forEach(id=>$('#'+id).addEventListener('input',draw));
+$('#add').onclick=()=>{data.push({name:'새 항목',value:3});renderRows();draw()};
+$('#reset').onclick=()=>{
+  graphType='bar';data=[{name:'사과',value:8},{name:'바나나',value:5},{name:'딸기',value:10},{name:'포도',value:7}];
+  $('#title').value='우리 반이 좋아하는 과일';$('#xlabel').value='과일';$('#ylabel').value='학생 수(명)';
+  document.querySelectorAll('.type').forEach((x,i)=>x.classList.toggle('active',i===0));
+  renderRows();draw();
+};
+$('#save').onclick=()=>{
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  const xml=new XMLSerializer().serializeToString(clone);
+  const blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');canvas.width=1640;canvas.height=1080;
+    const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    const a=document.createElement('a');a.download=($('#title').value||'그래프')+'.png';a.href=canvas.toDataURL('image/png');a.click();
+  };
+  img.src=url;
+};
+renderRows();draw();
+</script>
+</body>
+</html>
