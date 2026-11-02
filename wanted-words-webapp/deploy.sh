@@ -13,13 +13,8 @@ AUTH="Authorization: Bearer $TOKEN"
 
 echo "[2/7] Preparing site..."
 SITES_JSON="$(curl -fsS -H "$AUTH" "https://firebasehosting.googleapis.com/v1beta1/projects/$PROJECT_ID/sites")"
-if ! python3 - "$SITE_ID" <<'PY' <<<"$SITES_JSON"
-import json,sys
-site=sys.argv[1]
-d=json.load(sys.stdin)
-sys.exit(0 if any(x.get('name','').endswith('/'+site) for x in d.get('sites',[])) else 1)
-PY
-then
+HAS_SITE="$(python3 -c 'import json,sys; site=sys.argv[1]; d=json.loads(sys.argv[2]); print("yes" if any(x.get("name","").endswith("/"+site) for x in d.get("sites",[])) else "no")' "$SITE_ID" "$SITES_JSON")"
+if [ "$HAS_SITE" != "yes" ]; then
   curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
     "https://firebasehosting.googleapis.com/v1beta1/projects/$PROJECT_ID/sites?siteId=$SITE_ID" >/dev/null
 fi
