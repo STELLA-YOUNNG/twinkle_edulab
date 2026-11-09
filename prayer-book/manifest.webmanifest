@@ -1,0 +1,19 @@
+{
+  "name": "임직자를 위한 10일 저녁기도 · 하루 한 시간 기도수첩",
+  "short_name": "10일 저녁기도",
+  "description": "10일간의 말씀과 기도 및 묵상 노트",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14253f",
+  "theme_color": "#14253f",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "./icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
